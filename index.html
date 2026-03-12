@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Himanshu Cloud — Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root{--pink:#fb7185;--purple:#e879f9;--text:rgba(255,255,255,0.92);--muted:rgba(255,255,255,0.50);}
+    *{margin:0;padding:0;box-sizing:border-box;}
+    html,body{width:100vw;min-height:100vh;background:transparent;font-family:'DM Sans',sans-serif;color:var(--text);overflow-x:hidden;}
+    .video-bg{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:0;overflow:hidden;}
+    .video-bg video{position:absolute;top:50%;left:50%;min-width:100vw;min-height:100vh;transform:translate(-50%,-50%);}
+    .video-overlay{position:fixed;inset:0;background:linear-gradient(160deg,rgba(10,0,25,0.45)0%,rgba(5,0,15,0.35)60%,rgba(100,20,70,0.20)100%);z-index:1;}
+    #rain-canvas{position:fixed;inset:0;z-index:2;pointer-events:none;}
+    #thunder{position:fixed;inset:0;z-index:3;pointer-events:none;background:rgba(255,255,255,0);}
+    #lightning-canvas{position:fixed;inset:0;z-index:3;pointer-events:none;}
+    .wind-wrap{position:fixed;inset:0;z-index:2;pointer-events:none;overflow:hidden;}
+    .wind{position:absolute;opacity:0;animation:windMove linear infinite;filter:drop-shadow(0 2px 10px rgba(255,255,255,0.6));}
+    .wind:nth-child(1){top:8%;font-size:30px;animation-duration:6s;}
+    .wind:nth-child(2){top:22%;font-size:20px;animation-duration:8s;animation-delay:1.5s;}
+    .wind:nth-child(3){top:42%;font-size:36px;animation-duration:5.5s;animation-delay:0.8s;}
+    .wind:nth-child(4){top:62%;font-size:24px;animation-duration:7s;animation-delay:2.5s;}
+    .wind:nth-child(5){top:78%;font-size:18px;animation-duration:9s;animation-delay:1s;}
+    .wind:nth-child(6){top:33%;font-size:28px;animation-duration:7.5s;animation-delay:3.5s;}
+    .petals{position:fixed;inset:0;z-index:2;pointer-events:none;overflow:hidden;}
+    .petal{position:absolute;font-size:14px;animation:petalFall linear infinite;opacity:0;}
+    .petal:nth-child(1){left:5%;animation-duration:10s;}
+    .petal:nth-child(2){left:20%;animation-duration:13s;animation-delay:3s;}
+    .petal:nth-child(3){left:40%;animation-duration:9s;animation-delay:1s;}
+    .petal:nth-child(4){left:60%;animation-duration:12s;animation-delay:5s;}
+    .petal:nth-child(5){left:80%;animation-duration:11s;animation-delay:2s;}
+    .page{position:relative;z-index:4;min-height:100vh;padding:0 0 80px;}
+    .header{position:sticky;top:0;z-index:10;background:rgba(0,0,0,0.15);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid rgba(255,255,255,0.15);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+    .header-left{display:flex;align-items:center;gap:10px;}
+    .logo-icon{font-size:30px;animation:floatIcon 3s ease-in-out infinite;}
+    .logo-text{font-family:'Playfair Display',serif;font-size:24px;font-weight:900;background:linear-gradient(135deg,#fff,#f9a8d4,#e879f9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:2px;}
+    .header-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+    .contact-btn{display:flex;align-items:center;gap:6px;background:transparent;border:1px solid rgba(255,255,255,0.22);border-radius:50px;padding:9px 14px;font-size:14px;color:var(--text);text-decoration:none;backdrop-filter:blur(6px);transition:transform 0.15s;white-space:nowrap;}
+    .admin-btn{display:flex;align-items:center;gap:6px;background:transparent;border:1.5px solid rgba(232,121,249,0.5);border-radius:50px;padding:9px 14px;font-size:14px;color:#e879f9;cursor:pointer;text-shadow:0 0 10px rgba(232,121,249,0.6);transition:transform 0.15s;white-space:nowrap;}
+    .admin-btn:active{transform:scale(0.96);}
+    .welcome-wrap{padding:34px 20px 10px;text-align:center;}
+    .welcome-line{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:10px;font-family:'Playfair Display',serif;font-size:clamp(28px,8vw,44px);font-weight:900;line-height:1.5;}
+    .w-word{opacity:0;display:inline-block;animation:wordBlink 1.2s ease forwards;}
+    .w-word.gradient{background:linear-gradient(135deg,#fb7185,#e879f9,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .w-word:nth-child(1){animation-delay:0.1s;}.w-word:nth-child(2){animation-delay:0.5s;}.w-word:nth-child(3){animation-delay:0.9s;}.w-word:nth-child(4){animation-delay:1.3s;}.w-word:nth-child(5){animation-delay:1.7s;}.w-word:nth-child(6){animation-delay:2.1s;}
+    .welcome-sub{margin-top:12px;font-size:18px;color:var(--muted);letter-spacing:2.5px;text-transform:uppercase;opacity:0;animation:fadeUp 0.8s ease 2.8s forwards;}
+    .section-divider{width:60%;height:1px;margin:20px auto;background:linear-gradient(to right,transparent,rgba(249,168,212,0.5),rgba(232,121,249,0.5),transparent);opacity:0;animation:fadeIn 0.8s ease 3s forwards;}
+    .storage-wrap{margin:0 16px 20px;background:rgba(0,0,0,0.15);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.18);border-radius:22px;padding:18px 22px;opacity:0;animation:fadeUp 0.8s ease 3.1s forwards;}
+    .storage-label{display:flex;justify-content:space-between;font-size:17px;color:var(--muted);margin-bottom:10px;letter-spacing:1px;}
+    .storage-bar-bg{height:10px;background:rgba(255,255,255,0.07);border-radius:10px;overflow:hidden;}
+    .storage-bar-fill{height:100%;width:0%;background:linear-gradient(to right,#fb7185,#e879f9);border-radius:10px;transition:width 1s ease;}
+    .sections{padding:0 16px;display:flex;flex-direction:column;gap:22px;}
+    .upload-card{background:rgba(0,0,0,0.20);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.18);border-radius:28px;padding:28px 20px;opacity:0;transform:translateY(32px);}
+    .upload-card:nth-child(1){animation:cardIn 0.7s cubic-bezier(0.22,1,0.36,1) 0.3s forwards;}
+    .upload-card:nth-child(2){animation:cardIn 0.7s cubic-bezier(0.22,1,0.36,1) 0.5s forwards;}
+    .upload-card:nth-child(3){animation:cardIn 0.7s cubic-bezier(0.22,1,0.36,1) 0.7s forwards;}
+    .card-header{display:flex;align-items:center;gap:16px;margin-bottom:20px;}
+    .card-icon{width:64px;height:64px;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:30px;flex-shrink:0;}
+    .icon-video{background:linear-gradient(135deg,#fb7185,#f43f5e);}
+    .icon-image{background:linear-gradient(135deg,#e879f9,#a855f7);}
+    .icon-pdf{background:linear-gradient(135deg,#f9a8d4,#fb7185);}
+    .card-title{font-family:'Playfair Display',serif;font-size:28px;font-weight:700;}
+    .card-sub{font-size:15px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:3px;}
+    .drop-zone{border:1.5px dashed rgba(255,255,255,0.30);border-radius:20px;padding:30px 16px;text-align:center;cursor:pointer;transition:border-color 0.2s,background 0.2s;margin-bottom:16px;position:relative;background:rgba(255,255,255,0.04);}
+    .drop-zone:hover,.drop-zone.dragover{border-color:var(--pink);background:rgba(251,113,133,0.08);}
+    .drop-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+    .drop-icon{font-size:46px;margin-bottom:12px;}
+    .drop-text{font-size:20px;color:rgba(255,255,255,0.85);}
+    .drop-text span{color:var(--pink);font-weight:600;}
+    .file-info{font-size:15px;color:rgba(255,255,255,0.45);margin-top:8px;}
+    .selected-file{display:none;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.18);border-radius:16px;padding:14px 18px;margin-bottom:16px;font-size:16px;align-items:center;gap:12px;}
+    .selected-file.show{display:flex;}
+    .file-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .file-size{color:var(--muted);flex-shrink:0;}
+    .progress-wrap{display:none;margin-bottom:18px;background:rgba(0,0,0,0.20);border-radius:20px;padding:18px;border:1px solid rgba(255,255,255,0.18);}
+    .progress-wrap.show{display:block;}
+    .progress-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+    .progress-status{font-size:18px;font-weight:500;}
+    .progress-pct{font-size:36px;font-weight:900;font-family:'Playfair Display',serif;}
+    .pct-video{color:#fb7185;text-shadow:0 0 12px rgba(251,113,133,0.6);}
+    .pct-image{color:#e879f9;text-shadow:0 0 12px rgba(232,121,249,0.6);}
+    .pct-pdf{color:#f9a8d4;text-shadow:0 0 12px rgba(249,168,212,0.6);}
+    .progress-bar-bg{height:10px;background:rgba(255,255,255,0.07);border-radius:10px;overflow:hidden;margin-bottom:12px;}
+    .progress-bar-fill{height:100%;width:0%;border-radius:10px;transition:width 0.3s ease;}
+    .progress-bar-fill.video-fill{background:linear-gradient(to right,#fb7185,#f43f5e);}
+    .progress-bar-fill.image-fill{background:linear-gradient(to right,#e879f9,#a855f7);}
+    .progress-bar-fill.pdf-fill{background:linear-gradient(to right,#f9a8d4,#fb7185);}
+    .progress-details{display:flex;justify-content:space-between;font-size:14px;color:var(--muted);}
+    .upload-btn{width:100%;padding:18px;border-radius:50px;background:transparent;font-family:'DM Sans',sans-serif;font-size:18px;font-weight:600;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:transform 0.15s,opacity 0.2s;position:relative;overflow:hidden;backdrop-filter:blur(8px);color:#fff;margin-bottom:14px;}
+    .upload-btn:disabled{opacity:0.3;cursor:not-allowed;}
+    .upload-btn:not(:disabled):active{transform:scale(0.97);}
+    .btn-video{border:1.5px solid rgba(251,113,133,0.6);text-shadow:0 0 14px rgba(251,113,133,0.9);}
+    .btn-image{border:1.5px solid rgba(232,121,249,0.6);text-shadow:0 0 14px rgba(232,121,249,0.9);}
+    .btn-pdf{border:1.5px solid rgba(249,168,212,0.6);text-shadow:0 0 14px rgba(249,168,212,0.9);}
+    .upload-btn::after{content:'';position:absolute;top:-50%;left:-60%;width:40%;height:200%;background:rgba(255,255,255,0.07);transform:skewX(-20deg);animation:shimmer 3s ease-in-out infinite;}
+    .success-msg{display:none;text-align:center;padding:16px;background:rgba(134,239,172,0.07);border:1px solid rgba(134,239,172,0.22);border-radius:16px;font-size:18px;color:#86efac;margin-bottom:14px;}
+    .success-msg.show{display:block;animation:fadeUp 0.5s ease;}
+    .files-list{display:none;flex-direction:column;gap:12px;margin-top:6px;}
+    .files-list.show{display:flex;}
+    .files-list-title{font-size:17px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;font-weight:600;}
+    .file-item{background:rgba(0,0,0,0.15);border:1px solid rgba(255,255,255,0.18);border-radius:18px;padding:16px 18px;display:flex;align-items:center;gap:12px;}
+    .file-item-icon{font-size:28px;flex-shrink:0;}
+    .file-item-info{flex:1;overflow:hidden;}
+    .file-item-name{font-size:17px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .file-item-size{font-size:14px;color:var(--muted);margin-top:3px;}
+    .file-actions{display:flex;gap:8px;flex-shrink:0;}
+    .action-btn{width:46px;height:46px;border-radius:50%;border:none;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;transition:transform 0.15s;background:rgba(255,255,255,0.06);}
+    .action-btn:active{transform:scale(0.90);}
+    .btn-preview{border:1px solid rgba(100,200,255,0.4);color:#7dd3fc;}
+    .btn-download{border:1px solid rgba(134,239,172,0.4);color:#86efac;}
+    .btn-delete{border:1px solid rgba(251,113,133,0.4);color:#fb7185;}
+    .empty-note{font-size:15px;color:rgba(255,255,255,0.25);text-align:center;padding:20px;}
+    .err-note{font-size:14px;color:#fb7185;text-align:center;padding:16px;}
+    .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:100;justify-content:center;align-items:center;padding:20px;}
+    .modal-bg.show{display:flex;}
+    .modal-box{background:rgba(12,4,28,0.97);backdrop-filter:blur(30px);border:1px solid rgba(255,255,255,0.12);border-radius:26px;padding:24px;width:100%;max-width:430px;animation:cardIn 0.4s cubic-bezier(0.22,1,0.36,1);}
+    .modal-title{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;}
+    .modal-close{background:none;border:none;color:var(--muted);font-size:26px;cursor:pointer;}
+    .preview-video{width:100%;border-radius:14px;max-height:280px;background:#000;display:block;}
+    .preview-image{width:100%;border-radius:14px;max-height:320px;object-fit:contain;display:block;}
+    .preview-pdf{width:100%;height:320px;border-radius:14px;border:none;display:block;}
+    .preview-name{font-size:14px;color:var(--muted);margin-top:12px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .pass-box{background:rgba(12,4,28,0.97);backdrop-filter:blur(30px);border:1px solid rgba(255,255,255,0.12);border-radius:26px;padding:30px 24px;width:100%;max-width:360px;text-align:center;animation:cardIn 0.4s cubic-bezier(0.22,1,0.36,1);}
+    .pass-icon{font-size:44px;margin-bottom:12px;}
+    .pass-title{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;margin-bottom:6px;}
+    .pass-sub{font-size:14px;color:var(--muted);margin-bottom:22px;}
+    .pass-input{width:100%;padding:15px 20px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:50px;color:#fff;font-size:20px;letter-spacing:6px;text-align:center;font-family:'DM Sans',sans-serif;margin-bottom:16px;outline:none;transition:border-color 0.2s;}
+    .pass-input:focus{border-color:rgba(251,113,133,0.6);}
+    .pass-input.error{border-color:#fb7185;animation:shake 0.4s ease;}
+    .pass-btn-row{display:flex;gap:12px;}
+    .pass-confirm{flex:1;padding:15px;border-radius:50px;border:1.5px solid rgba(251,113,133,0.6);background:transparent;color:#fff;font-size:16px;font-weight:600;cursor:pointer;text-shadow:0 0 12px rgba(251,113,133,0.8);transition:transform 0.15s;}
+    .pass-confirm:active{transform:scale(0.97);}
+    .pass-cancel{flex:1;padding:15px;border-radius:50px;border:1px solid rgba(255,255,255,0.18);background:transparent;color:var(--muted);font-size:16px;cursor:pointer;}
+    .pass-err{font-size:14px;color:#fb7185;margin-top:10px;display:none;}
+    .pass-err.show{display:block;}
+    .admin-login-box{background:rgba(12,4,28,0.97);backdrop-filter:blur(30px);border:1px solid rgba(232,121,249,0.25);border-radius:26px;padding:30px 24px;width:100%;max-width:360px;text-align:center;animation:cardIn 0.4s cubic-bezier(0.22,1,0.36,1);}
+    .admin-pinput{width:100%;padding:15px 20px;background:rgba(255,255,255,0.05);border:1px solid rgba(232,121,249,0.3);border-radius:50px;color:#fff;font-size:20px;letter-spacing:6px;text-align:center;font-family:'DM Sans',sans-serif;margin-bottom:16px;outline:none;transition:border-color 0.2s;}
+    .admin-pinput:focus{border-color:rgba(232,121,249,0.6);}
+    .admin-pinput.error{border-color:#fb7185;animation:shake 0.4s ease;}
+    .enter-btn{flex:1;padding:15px;border-radius:50px;border:1.5px solid rgba(232,121,249,0.6);background:transparent;color:#e879f9;font-size:16px;font-weight:600;cursor:pointer;text-shadow:0 0 12px rgba(232,121,249,0.8);}
+    .admin-panel{display:none;position:fixed;inset:0;background:rgba(5,0,15,0.97);z-index:200;overflow-y:auto;}
+    .admin-panel.show{display:block;}
+    .admin-inner{padding:20px 16px 80px;max-width:600px;margin:0 auto;}
+    .admin-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;padding-top:10px;}
+    .admin-title{font-family:'Playfair Display',serif;font-size:30px;font-weight:900;background:linear-gradient(135deg,#e879f9,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .admin-close-btn{background:transparent;border:1px solid rgba(255,255,255,0.2);border-radius:50px;padding:10px 22px;color:var(--muted);font-size:16px;cursor:pointer;}
+    .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;}
+    .stat-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:18px;text-align:center;}
+    .stat-num{font-family:'Playfair Display',serif;font-size:34px;font-weight:900;background:linear-gradient(135deg,#fb7185,#e879f9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .stat-label{font-size:13px;color:var(--muted);margin-top:4px;letter-spacing:1px;text-transform:uppercase;}
+    .section-box{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:22px;padding:22px;margin-bottom:22px;}
+    .section-box-title{font-size:18px;font-weight:600;margin-bottom:16px;}
+    .field-input{width:100%;padding:14px 18px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:50px;color:#fff;font-size:16px;font-family:'DM Sans',sans-serif;margin-bottom:12px;outline:none;transition:border-color 0.2s;}
+    .field-input:focus{border-color:rgba(232,121,249,0.5);}
+    .purple-btn{width:100%;padding:15px;border-radius:50px;border:1.5px solid rgba(232,121,249,0.6);background:transparent;color:#e879f9;font-size:16px;font-weight:600;cursor:pointer;text-shadow:0 0 10px rgba(232,121,249,0.6);}
+    .inline-ok{display:none;font-size:14px;color:#86efac;text-align:center;margin-top:10px;}
+    .inline-ok.show{display:block;}
+    .admin-tabs{display:flex;gap:8px;margin-bottom:18px;overflow-x:auto;padding-bottom:4px;}
+    .atab{padding:10px 20px;border-radius:50px;border:1px solid rgba(255,255,255,0.14);background:transparent;color:var(--muted);font-size:15px;cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;}
+    .atab.active{border-color:rgba(232,121,249,0.6);color:#e879f9;text-shadow:0 0 10px rgba(232,121,249,0.6);}
+    .admin-files-list{display:flex;flex-direction:column;gap:12px;}
+    .afc{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:18px;padding:16px 18px;display:flex;align-items:center;gap:14px;}
+    .afc-icon{font-size:28px;flex-shrink:0;}
+    .afc-info{flex:1;overflow:hidden;}
+    .afc-name{font-size:17px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .afc-meta{font-size:13px;color:var(--muted);margin-top:3px;}
+    .afc-actions{display:flex;gap:8px;flex-shrink:0;}
+    .afc-btn{width:42px;height:42px;border-radius:50%;background:transparent;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;transition:transform 0.15s;}
+    .afc-btn:active{transform:scale(0.90);}
+    .afc-eye{border:1px solid rgba(100,200,255,0.4);color:#7dd3fc;}
+    .afc-del{border:1px solid rgba(251,113,133,0.4);color:#fb7185;}
+    .admin-empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:16px;}
+    .footer{text-align:center;padding:30px 20px 10px;font-size:14px;color:var(--muted);letter-spacing:1px;opacity:0;animation:fadeUp 0.8s ease 2.5s forwards;}
+    .footer span{color:#f9a8d4;}
+    @keyframes cardIn{to{opacity:1;transform:translateY(0);}}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}
+    @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+    @keyframes floatIcon{0%,100%{transform:translateY(0);}50%{transform:translateY(-9px);}}
+    @keyframes shimmer{0%{left:-60%;}100%{left:130%;}}
+    @keyframes windMove{0%{left:-80px;opacity:0;}8%{opacity:1;}88%{opacity:0.85;}100%{left:110vw;opacity:0;}}
+    @keyframes petalFall{0%{top:-5%;opacity:0;transform:rotate(0deg);}10%{opacity:0.8;}90%{opacity:0.4;}100%{top:105%;transform:translateX(60px) rotate(360deg);opacity:0;}}
+    @keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-8px);}75%{transform:translateX(8px);}}
+    @keyframes wordBlink{0%{opacity:0;transform:translateY(20px);}30%{opacity:1;transform:translateY(0);}50%{opacity:0.2;}65%{opacity:1;}80%{opacity:0.3;}100%{opacity:1;transform:translateY(0);}}
+  </style>
+</head>
+<body>
+<div class="video-bg"><video autoplay muted loop playsinline id="bgVideo"><source src="videos/bg.mp4" type="video/mp4"></video></div>
+<div class="video-overlay"></div>
+<canvas id="rain-canvas"></canvas>
+<div id="thunder"></div>
+<canvas id="lightning-canvas"></canvas>
+<div class="wind-wrap"><div class="wind">☁️</div><div class="wind">⛅</div><div class="wind">☁️</div><div class="wind">🌤️</div><div class="wind">☁️</div><div class="wind">⛅</div></div>
+<div class="petals"><div class="petal">🌸</div><div class="petal">🌸</div><div class="petal">🌸</div><div class="petal">🌸</div><div class="petal">🌸</div></div>
+
+<!-- PREVIEW MODAL -->
+<div class="modal-bg" id="previewModal">
+  <div class="modal-box">
+    <div class="modal-title"><span>👁️ Preview</span><button class="modal-close" onclick="closePreview()">✕</button></div>
+    <div id="previewContent"></div>
+    <p class="preview-name" id="previewName"></p>
+  </div>
+</div>
+
+<!-- DELETE MODAL -->
+<div class="modal-bg" id="passModal">
+  <div class="pass-box">
+    <div class="pass-icon">🔐</div>
+    <div class="pass-title">Delete File</div>
+    <p class="pass-sub">Admin password daalo</p>
+    <input class="pass-input" type="password" id="passInput" placeholder="••••••••" maxlength="30" onkeydown="if(event.key==='Enter')confirmDelete()">
+    <div class="pass-btn-row">
+      <button class="pass-confirm" onclick="confirmDelete()">🗑️ Delete</button>
+      <button class="pass-cancel" onclick="closePassModal()">Cancel</button>
+    </div>
+    <p class="pass-err" id="passErr">❌ Wrong password!</p>
+  </div>
+</div>
+
+<!-- ADMIN LOGIN MODAL -->
+<div class="modal-bg" id="adminLoginModal">
+  <div class="admin-login-box">
+    <div class="pass-icon">⚙️</div>
+    <div class="pass-title" style="background:linear-gradient(135deg,#e879f9,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Admin Panel</div>
+    <p class="pass-sub" style="margin-top:6px;margin-bottom:22px;">Password daalo</p>
+    <input class="admin-pinput" type="password" id="adminPInput" placeholder="••••••••" maxlength="30" onkeydown="if(event.key==='Enter')loginAdmin()">
+    <div class="pass-btn-row">
+      <button class="enter-btn" onclick="loginAdmin()">🔓 Enter</button>
+      <button class="pass-cancel" onclick="closeAdminLogin()">Cancel</button>
+    </div>
+    <p class="pass-err" id="adminPErr">❌ Wrong password!</p>
+  </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div class="admin-panel" id="adminPanel">
+  <div class="admin-inner">
+    <div class="admin-top">
+      <span class="admin-title">⚙️ Admin Panel</span>
+      <button class="admin-close-btn" onclick="closeAdmin()">✕ Close</button>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-num" id="as1">0</div><div class="stat-label">Total Files</div></div>
+      <div class="stat-card"><div class="stat-num" id="as2">0B</div><div class="stat-label">Storage Used</div></div>
+      <div class="stat-card"><div class="stat-num" id="as3">0</div><div class="stat-label">🎬 Videos</div></div>
+      <div class="stat-card"><div class="stat-num" id="as4">0</div><div class="stat-label">🖼️ Images</div></div>
+    </div>
+    <div class="section-box">
+      <div class="section-box-title">🔑 Change Admin Password</div>
+      <input class="field-input" type="password" id="np1" placeholder="Naya password">
+      <input class="field-input" type="password" id="np2" placeholder="Confirm password">
+      <button class="purple-btn" onclick="changePass()">💾 Save Password</button>
+      <p class="inline-ok" id="passOk">✅ Password change ho gaya!</p>
+    </div>
+    <div class="admin-tabs">
+      <button class="atab active" onclick="switchTab(this,'all')">📁 All</button>
+      <button class="atab" onclick="switchTab(this,'video')">🎬 Videos</button>
+      <button class="atab" onclick="switchTab(this,'image')">🖼️ Images</button>
+      <button class="atab" onclick="switchTab(this,'pdf')">📄 Docs</button>
+    </div>
+    <div class="admin-files-list" id="adminList"><div class="admin-empty">Loading...</div></div>
+  </div>
+</div>
+
+<!-- MAIN PAGE -->
+<div class="page">
+  <header class="header">
+    <div class="header-left">
+      <span class="logo-icon">☁️</span>
+      <span class="logo-text">Himanshu</span>
+    </div>
+    <div class="header-right">
+      <a href="https://www.instagram.com/xtylo_himanshu_" target="_blank" class="contact-btn">📸 Contact</a>
+      <button class="admin-btn" onclick="openAdminLogin()">⚙️ Panel</button>
+    </div>
+  </header>
+
+  <div class="welcome-wrap">
+    <div class="welcome-line">
+      <span class="w-word">Welcome</span>
+      <span class="w-word gradient">Himanshu</span>
+      <span class="w-word gradient">Yadav</span>
+      <span class="w-word">Cloud</span>
+      <span class="w-word">Storage</span>
+      <span class="w-word">☁️</span>
+    </div>
+    <p class="welcome-sub">Your files, anywhere, anytime</p>
+  </div>
+  <div class="section-divider"></div>
+
+  <div class="storage-wrap">
+    <div class="storage-label"><span>☁️ Storage Used</span><span id="storageText">Loading...</span></div>
+    <div class="storage-bar-bg"><div class="storage-bar-fill" id="storageBar"></div></div>
+  </div>
+
+  <div class="sections">
+    <!-- VIDEO -->
+    <div class="upload-card">
+      <div class="card-header"><div class="card-icon icon-video">🎬</div><div><div class="card-title">Upload Video</div><div class="card-sub">MP4 • MOV • AVI • MKV</div></div></div>
+      <div class="drop-zone" id="videoDrop"><input type="file" accept="video/*" id="videoInput" onchange="handleFile('video',this)"><div class="drop-icon">🎥</div><div class="drop-text">Tap to <span>choose video</span></div><div class="file-info">Chunked Upload • Backblaze B2 Cloud</div></div>
+      <div class="selected-file" id="videoSelected"><span>🎬</span><span class="file-name" id="videoFileName"></span><span class="file-size" id="videoFileSize"></span></div>
+      <div class="progress-wrap" id="videoProgress"><div class="progress-top"><span class="progress-status" id="videoStatus">Uploading...</span><span class="progress-pct pct-video" id="videoPercent">0%</span></div><div class="progress-bar-bg"><div class="progress-bar-fill video-fill" id="videoBar"></div></div><div class="progress-details"><span id="videoChunk">Preparing...</span><span id="videoSpeed">--</span><span id="videoTime">--</span></div></div>
+      <button class="upload-btn btn-video" id="videoBtn" onclick="startUpload('video')" disabled>🎬 Upload Video</button>
+      <div class="success-msg" id="videoSuccess">✅ Video uploaded to Backblaze Cloud!</div>
+      <div class="files-list" id="videoFiles"><p class="files-list-title">📁 Uploaded Videos</p></div>
+    </div>
+    <!-- IMAGE -->
+    <div class="upload-card">
+      <div class="card-header"><div class="card-icon icon-image">🖼️</div><div><div class="card-title">Upload Image</div><div class="card-sub">JPG • PNG • WEBP • GIF</div></div></div>
+      <div class="drop-zone" id="imageDrop"><input type="file" accept="image/*" id="imageInput" onchange="handleFile('image',this)"><div class="drop-icon">🖼️</div><div class="drop-text">Tap to <span>choose image</span></div><div class="file-info">Fast Upload • All formats</div></div>
+      <div class="selected-file" id="imageSelected"><span>🖼️</span><span class="file-name" id="imageFileName"></span><span class="file-size" id="imageFileSize"></span></div>
+      <div class="progress-wrap" id="imageProgress"><div class="progress-top"><span class="progress-status" id="imageStatus">Uploading...</span><span class="progress-pct pct-image" id="imagePercent">0%</span></div><div class="progress-bar-bg"><div class="progress-bar-fill image-fill" id="imageBar"></div></div><div class="progress-details"><span id="imageChunk">Preparing...</span><span id="imageSpeed">--</span><span id="imageTime">--</span></div></div>
+      <button class="upload-btn btn-image" id="imageBtn" onclick="startUpload('image')" disabled>🖼️ Upload Image</button>
+      <div class="success-msg" id="imageSuccess">✅ Image uploaded to Backblaze Cloud!</div>
+      <div class="files-list" id="imageFiles"><p class="files-list-title">📁 Uploaded Images</p></div>
+    </div>
+    <!-- PDF -->
+    <div class="upload-card">
+      <div class="card-header"><div class="card-icon icon-pdf">📄</div><div><div class="card-title">Upload Document</div><div class="card-sub">PDF • DOC • DOCX • TXT</div></div></div>
+      <div class="drop-zone" id="pdfDrop"><input type="file" accept=".pdf,.doc,.docx,.txt" id="pdfInput" onchange="handleFile('pdf',this)"><div class="drop-icon">📄</div><div class="drop-text">Tap to <span>choose document</span></div><div class="file-info">Secure Upload • All formats</div></div>
+      <div class="selected-file" id="pdfSelected"><span>📄</span><span class="file-name" id="pdfFileName"></span><span class="file-size" id="pdfFileSize"></span></div>
+      <div class="progress-wrap" id="pdfProgress"><div class="progress-top"><span class="progress-status" id="pdfStatus">Uploading...</span><span class="progress-pct pct-pdf" id="pdfPercent">0%</span></div><div class="progress-bar-bg"><div class="progress-bar-fill pdf-fill" id="pdfBar"></div></div><div class="progress-details"><span id="pdfChunk">Preparing...</span><span id="pdfSpeed">--</span><span id="pdfTime">--</span></div></div>
+      <button class="upload-btn btn-pdf" id="pdfBtn" onclick="startUpload('pdf')" disabled>📄 Upload Document</button>
+      <div class="success-msg" id="pdfSuccess">✅ Document uploaded to Backblaze Cloud!</div>
+      <div class="files-list" id="pdfFiles"><p class="files-list-title">📁 Uploaded Documents</p></div>
+    </div>
+  </div>
+  <div class="footer">Made with 💖 by <span>Himanshu Yadav</span> &nbsp;✦&nbsp; Cloud v2.0</div>
+</div>
+
+<script>
+var API='https://himanshu-cloud.onrender.com';
+var ADMIN_PASS='Himanshu0000';
+var allFiles=[];
+var pending={video:null,image:null,pdf:null};
+var delTarget=null;
+var curTab='all';
+
+// VIDEO BG
+var bgV=document.getElementById('bgVideo');
+function rv(){var W=window.innerWidth,H=window.innerHeight;bgV.style.width=W/H<16/9?'auto':W+'px';bgV.style.height=W/H<16/9?H+'px':'auto';}
+rv();window.addEventListener('resize',rv);
+
+// RAIN
+var rc=document.getElementById('rain-canvas'),rctx=rc.getContext('2d'),drops=[];
+function initRain(){rc.width=window.innerWidth;rc.height=window.innerHeight;drops=[];for(var i=0;i<260;i++)drops.push({x:Math.random()*rc.width,y:Math.random()*rc.height,len:Math.random()*28+14,speed:Math.random()*8+9,op:Math.random()*0.6+0.35,wind:Math.random()*3+1.5,w:Math.random()*1.4+0.8});}
+function drawRain(){rctx.clearRect(0,0,rc.width,rc.height);drops.forEach(function(d){rctx.beginPath();rctx.moveTo(d.x,d.y);rctx.lineTo(d.x+d.wind*2.8,d.y+d.len);rctx.strokeStyle='rgba(200,235,255,'+d.op+')';rctx.lineWidth=d.w;rctx.stroke();d.y+=d.speed;d.x+=d.wind;if(d.y>rc.height||d.x>rc.width){d.y=-20;d.x=Math.random()*rc.width;}});requestAnimationFrame(drawRain);}
+initRain();drawRain();window.addEventListener('resize',initRain);
+
+// THUNDER
+var th=document.getElementById('thunder'),lc=document.getElementById('lightning-canvas'),lx=lc.getContext('2d');
+lc.width=window.innerWidth;lc.height=window.innerHeight;
+window.addEventListener('resize',function(){lc.width=window.innerWidth;lc.height=window.innerHeight;});
+function bolt(x1,y1,x2,y2,sp,d){if(d<=0||sp<1)return;var mx=(x1+x2)/2+(Math.random()-0.5)*sp,my=(y1+y2)/2+(Math.random()-0.5)*sp*0.3;lx.beginPath();lx.moveTo(x1,y1);lx.lineTo(mx,my);lx.lineTo(x2,y2);lx.strokeStyle='rgba(200,220,255,0.95)';lx.lineWidth=d*1.2;lx.shadowColor='rgba(150,200,255,1)';lx.shadowBlur=18;lx.stroke();if(d>1&&Math.random()>0.45)bolt(mx,my,mx+(Math.random()-0.3)*sp*1.5,my+Math.random()*sp*1.2,sp*0.55,d-1);bolt(x1,y1,mx,my,sp*0.55,d-1);bolt(mx,my,x2,y2,sp*0.55,d-1);}
+function doThunder(){lx.clearRect(0,0,lc.width,lc.height);bolt(Math.random()*lc.width*0.8+lc.width*0.1,0,Math.random()*lc.width,lc.height*0.45,lc.width*0.12,6);th.style.background='rgba(210,230,255,0.22)';setTimeout(function(){th.style.background='rgba(255,255,255,0)';setTimeout(function(){lx.clearRect(0,0,lc.width,lc.height);th.style.background='rgba(210,230,255,0.30)';setTimeout(function(){th.style.background='rgba(255,255,255,0)';lx.clearRect(0,0,lc.width,lc.height);},90);},130);},75);setTimeout(doThunder,Math.random()*14000+8000);}
+setTimeout(doThunder,4500);
+
+// HELPERS
+function fmtSz(b){if(!b||b<1024)return (b||0)+'B';if(b<1048576)return (b/1024).toFixed(1)+'KB';if(b<1073741824)return (b/1048576).toFixed(1)+'MB';return (b/1073741824).toFixed(2)+'GB';}
+function fmtSpd(b){if(b<1024)return b.toFixed(0)+' B/s';if(b<1048576)return (b/1024).toFixed(1)+' KB/s';return (b/1048576).toFixed(1)+' MB/s';}
+function fmtTime(s){if(!isFinite(s)||s<0)return '...';if(s<60)return Math.ceil(s)+'s left';return Math.ceil(s/60)+'m left';}
+function getType(n){var e=(n||'').split('.').pop().toLowerCase();if(['mp4','mov','avi','mkv','webm','m4v'].includes(e))return 'video';if(['jpg','jpeg','png','gif','webp','svg','bmp'].includes(e))return 'image';return 'pdf';}
+function getIcon(t){return t==='video'?'🎬':t==='image'?'🖼️':'📄';}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function escK(s){return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\\'");}
+
+// LOAD FILES
+async function loadFiles(){
+  try{
+    var r=await fetch(API+'/files');
+    if(!r.ok)throw new Error('Server error '+r.status);
+    allFiles=await r.json();
+    renderAll();
+    updateBar();
+  }catch(e){
+    document.getElementById('storageText').textContent='0 B / 70 GB';
+  }
+}
+
+function renderAll(){
+  ['video','image','pdf'].forEach(function(t){renderSection(t,allFiles.filter(function(f){return f.type===t;}));});
+}
+
+function renderSection(type,files){
+  var c=document.getElementById(type+'Files');
+  Array.from(c.querySelectorAll('.file-item,.empty-note,.err-note')).forEach(function(el){el.remove();});
+  if(!files.length){var p=document.createElement('p');p.className='empty-note';p.textContent='No files yet';c.appendChild(p);c.classList.remove('show');return;}
+  c.classList.add('show');
+  files.forEach(function(f){
+    var d=document.createElement('div');d.className='file-item';
+    d.innerHTML='<span class="file-item-icon">'+getIcon(f.type)+'</span>'+
+      '<div class="file-item-info"><div class="file-item-name">'+esc(f.name)+'</div><div class="file-item-size">'+fmtSz(f.size)+'</div></div>'+
+      '<div class="file-actions">'+
+        '<button class="action-btn btn-preview" onclick="previewFile(\''+escK(f.key)+'\')">👁️</button>'+
+        '<button class="action-btn btn-download" onclick="dlFile(\''+escK(f.key)+'\',\''+esc(f.name)+'\')">⬇️</button>'+
+        '<button class="action-btn btn-delete" onclick="askDel(\''+escK(f.key)+'\')">🗑️</button>'+
+      '</div>';
+    c.appendChild(d);
+  });
+}
+
+function updateBar(){
+  var total=allFiles.reduce(function(s,f){return s+f.size;},0);
+  var pct=Math.min((total/(70*1073741824))*100,100);
+  document.getElementById('storageBar').style.width=pct+'%';
+  document.getElementById('storageText').textContent=fmtSz(total)+' / 70 GB';
+}
+
+// FILE SELECT
+function handleFile(type,input){
+  var f=input.files[0];if(!f)return;
+  pending[type]=f;
+  document.getElementById(type+'FileName').textContent=f.name;
+  document.getElementById(type+'FileSize').textContent=fmtSz(f.size);
+  document.getElementById(type+'Selected').classList.add('show');
+  document.getElementById(type+'Btn').disabled=false;
+  document.getElementById(type+'Success').classList.remove('show');
+  document.getElementById(type+'Progress').classList.remove('show');
+  document.getElementById(type+'Bar').style.width='0%';
+  document.getElementById(type+'Percent').textContent='0%';
+}
+
+// DRAG DROP
+['video','image','pdf'].forEach(function(t){
+  var z=document.getElementById(t+'Drop');
+  z.addEventListener('dragover',function(e){e.preventDefault();z.classList.add('dragover');});
+  z.addEventListener('dragleave',function(){z.classList.remove('dragover');});
+  z.addEventListener('drop',function(e){e.preventDefault();z.classList.remove('dragover');var f=e.dataTransfer&&e.dataTransfer.files[0];if(f){pending[t]=f;document.getElementById(t+'FileName').textContent=f.name;document.getElementById(t+'FileSize').textContent=fmtSz(f.size);document.getElementById(t+'Selected').classList.add('show');document.getElementById(t+'Btn').disabled=false;}});
+});
+
+// UPLOAD - Real XHR with actual progress
+function startUpload(type){
+  var file=pending[type];if(!file)return;
+  var btn=document.getElementById(type+'Btn');
+  btn.disabled=true;
+  document.getElementById(type+'Progress').classList.add('show');
+  document.getElementById(type+'Success').classList.remove('show');
+  document.getElementById(type+'Bar').style.width='0%';
+  document.getElementById(type+'Percent').textContent='0%';
+  document.getElementById(type+'Status').textContent='☁️ Uploading...';
+
+  var xhr=new XMLHttpRequest();
+  var t0=Date.now();
+
+  // REAL PROGRESS (phone → server, capped at 90%)
+  xhr.upload.addEventListener('progress',function(e){
+    if(e.lengthComputable){
+      var pct=Math.round((e.loaded/e.total)*90);
+      var elapsed=(Date.now()-t0)/1000||0.001;
+      var spd=e.loaded/elapsed;
+      var remaining=e.total-e.loaded;
+      document.getElementById(type+'Bar').style.width=pct+'%';
+      document.getElementById(type+'Percent').textContent=pct+'%';
+      document.getElementById(type+'Status').textContent='☁️ Uploading...';
+      document.getElementById(type+'Chunk').textContent=fmtSz(e.loaded)+' / '+fmtSz(e.total);
+      document.getElementById(type+'Speed').textContent=fmtSpd(spd);
+      document.getElementById(type+'Time').textContent=fmtTime(remaining/spd);
+    }
+  });
+
+  // Phone→server done, now animate 90→99% while server saves to B2
+  xhr.upload.addEventListener('load',function(){
+    document.getElementById(type+'Status').textContent='☁️ Saving to Backblaze...';
+    document.getElementById(type+'Chunk').textContent='Cloud pe save ho raha hai...';
+    document.getElementById(type+'Speed').textContent='';
+    document.getElementById(type+'Time').textContent='please wait';
+    var p=90;
+    var iv=setInterval(function(){
+      p+=0.4;
+      if(p>=99){p=99;clearInterval(iv);}
+      document.getElementById(type+'Bar').style.width=p+'%';
+      document.getElementById(type+'Percent').textContent=Math.round(p)+'%';
+    },200);
+    xhr._iv=iv;
+  });
+
+  xhr.addEventListener('load',function(){
+    if(xhr._iv)clearInterval(xhr._iv);
+    try{
+      var data=JSON.parse(xhr.responseText);
+      if(data.success){
+        document.getElementById(type+'Bar').style.width='100%';
+        document.getElementById(type+'Percent').textContent='100%';
+        document.getElementById(type+'Status').textContent='✅ Done!';
+        document.getElementById(type+'Chunk').textContent='Saved to Backblaze B2 ☁️';
+        document.getElementById(type+'Speed').textContent='';
+        document.getElementById(type+'Time').textContent='';
+        setTimeout(function(){
+          document.getElementById(type+'Progress').classList.remove('show');
+          document.getElementById(type+'Success').classList.add('show');
+          document.getElementById(type+'Selected').classList.remove('show');
+          btn.disabled=false;
+          pending[type]=null;
+          loadFiles();
+        },900);
+      } else {
+        throw new Error(data.error||'Upload failed');
+      }
+    }catch(e){
+      document.getElementById(type+'Status').textContent='❌ '+e.message;
+      document.getElementById(type+'Percent').textContent='!';
+      document.getElementById(type+'Chunk').textContent='Dobara try karo';
+      btn.disabled=false;
+    }
+  });
+
+  xhr.addEventListener('error',function(){
+    document.getElementById(type+'Status').textContent='❌ Network error!';
+    document.getElementById(type+'Percent').textContent='!';
+    document.getElementById(type+'Chunk').textContent='Backend chal raha hai? node server.js';
+    btn.disabled=false;
+  });
+
+  xhr.addEventListener('timeout',function(){
+    document.getElementById(type+'Status').textContent='❌ Timeout! File bahut badi hai';
+    document.getElementById(type+'Percent').textContent='!';
+    btn.disabled=false;
+  });
+
+  var fd=new FormData();
+  fd.append('file',file);
+  xhr.open('POST',API+'/upload');
+  xhr.timeout=3600000; // 1 hour timeout for large files
+  xhr.send(fd);
+}
+
+// PREVIEW - Fixed video preview (no download)
+function previewFile(key){
+  var f=allFiles.find(function(x){return x.key===key;});if(!f)return;
+  var h='';
+  if(f.type==='video'){
+    // Use direct URL without download attribute
+    h='<video class="preview-video" controls playsinline preload="metadata" style="width:100%;border-radius:14px;max-height:280px;background:#000;">'+
+      '<source src="'+f.url+'" type="video/mp4">'+
+      '<source src="'+f.url+'" type="video/webm">'+
+      '<source src="'+f.url+'" type="video/ogg">'+
+      'Your browser does not support video.</video>';
+  } else if(f.type==='image'){
+    h='<img class="preview-image" src="'+f.url+'" alt="'+esc(f.name)+'" style="width:100%;border-radius:14px;max-height:320px;object-fit:contain;">';
+  } else {
+    h='<iframe class="preview-pdf" src="'+f.url+'" style="width:100%;height:320px;border-radius:14px;border:none;"></iframe>';
+  }
+  document.getElementById('previewContent').innerHTML=h;
+  document.getElementById('previewName').textContent=f.name;
+  document.getElementById('previewModal').classList.add('show');
+}
+function closePreview(){
+  // Stop video when closing
+  var v=document.querySelector('#previewContent video');
+  if(v){v.pause();v.src='';}
+  document.getElementById('previewModal').classList.remove('show');
+  document.getElementById('previewContent').innerHTML='';
+}
+
+// DOWNLOAD
+function dlFile(key,name){var f=allFiles.find(function(x){return x.key===key;});if(!f)return;var a=document.createElement('a');a.href=f.url;a.download=name;a.target='_blank';document.body.appendChild(a);a.click();document.body.removeChild(a);}
+
+// DELETE
+function askDel(key){delTarget=key;document.getElementById('passInput').value='';document.getElementById('passInput').classList.remove('error');document.getElementById('passErr').classList.remove('show');document.getElementById('passModal').classList.add('show');setTimeout(function(){document.getElementById('passInput').focus();},300);}
+async function confirmDelete(){
+  if(document.getElementById('passInput').value===ADMIN_PASS){
+    try{var r=await fetch(API+'/files/'+encodeURIComponent(delTarget),{method:'DELETE'});var d=await r.json();if(d.success){closePassModal();loadFiles();}else throw new Error(d.error);}
+    catch(e){alert('Delete failed: '+e.message);}
+  }else{document.getElementById('passInput').classList.add('error');document.getElementById('passErr').classList.add('show');document.getElementById('passInput').value='';setTimeout(function(){document.getElementById('passInput').classList.remove('error');},500);}
+}
+function closePassModal(){document.getElementById('passModal').classList.remove('show');delTarget=null;}
+
+// ADMIN LOGIN
+function openAdminLogin(){document.getElementById('adminPInput').value='';document.getElementById('adminPErr').classList.remove('show');document.getElementById('adminLoginModal').classList.add('show');setTimeout(function(){document.getElementById('adminPInput').focus();},300);}
+function closeAdminLogin(){document.getElementById('adminLoginModal').classList.remove('show');}
+function loginAdmin(){
+  if(document.getElementById('adminPInput').value===ADMIN_PASS){closeAdminLogin();openAdmin();}
+  else{document.getElementById('adminPInput').classList.add('error');document.getElementById('adminPErr').classList.add('show');document.getElementById('adminPInput').value='';setTimeout(function(){document.getElementById('adminPInput').classList.remove('error');},500);}
+}
+
+// ADMIN PANEL
+function openAdmin(){document.getElementById('adminPanel').classList.add('show');refreshAdmin();}
+function closeAdmin(){document.getElementById('adminPanel').classList.remove('show');}
+function refreshAdmin(){
+  var tot=allFiles.reduce(function(s,f){return s+f.size;},0);
+  document.getElementById('as1').textContent=allFiles.length;
+  document.getElementById('as2').textContent=fmtSz(tot);
+  document.getElementById('as3').textContent=allFiles.filter(function(f){return f.type==='video';}).length;
+  document.getElementById('as4').textContent=allFiles.filter(function(f){return f.type==='image';}).length;
+  renderAdminList(curTab);
+}
+function switchTab(btn,tab){curTab=tab;document.querySelectorAll('.atab').forEach(function(t){t.classList.remove('active');});btn.classList.add('active');renderAdminList(tab);}
+function renderAdminList(tab){
+  var c=document.getElementById('adminList');c.innerHTML='';
+  var list=tab==='all'?allFiles:allFiles.filter(function(f){return f.type===tab;});
+  if(!list.length){c.innerHTML='<div class="admin-empty">📭 Koi file nahi</div>';return;}
+  list.forEach(function(f){
+    var d=document.createElement('div');d.className='afc';
+    d.innerHTML='<span class="afc-icon">'+getIcon(f.type)+'</span>'+
+      '<div class="afc-info"><div class="afc-name">'+esc(f.name)+'</div><div class="afc-meta">'+fmtSz(f.size)+' &bull; '+f.type.toUpperCase()+'</div></div>'+
+      '<div class="afc-actions">'+
+        '<button class="afc-btn afc-eye" onclick="adminPreview(\''+escK(f.key)+'\')">👁️</button>'+
+        '<button class="afc-btn afc-del" onclick="adminDel(\''+escK(f.key)+'\')">🗑️</button>'+
+      '</div>';
+    c.appendChild(d);
+  });
+}
+function adminPreview(key){closeAdmin();previewFile(key);}
+async function adminDel(key){
+  if(!confirm('Pakka delete karna hai?'))return;
+  try{var r=await fetch(API+'/files/'+encodeURIComponent(key),{method:'DELETE'});var d=await r.json();if(d.success){await loadFiles();refreshAdmin();}else alert('Failed: '+d.error);}
+  catch(e){alert('Error: '+e.message);}
+}
+function changePass(){
+  var p1=document.getElementById('np1').value,p2=document.getElementById('np2').value;
+  if(!p1){alert('Password khali nahi!');return;}
+  if(p1!==p2){alert('Passwords match nahi!');return;}
+  if(p1.length<6){alert('Min 6 characters chahiye!');return;}
+  ADMIN_PASS=p1;document.getElementById('np1').value='';document.getElementById('np2').value='';
+  var ok=document.getElementById('passOk');ok.classList.add('show');setTimeout(function(){ok.classList.remove('show');},3000);
+}
+
+// CLOSE ON BG
+document.getElementById('previewModal').addEventListener('click',function(e){if(e.target===this)closePreview();});
+document.getElementById('passModal').addEventListener('click',function(e){if(e.target===this)closePassModal();});
+document.getElementById('adminLoginModal').addEventListener('click',function(e){if(e.target===this)closeAdminLogin();});
+
+loadFiles();
+</script>
+</body>
+</html>
